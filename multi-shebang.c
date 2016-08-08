@@ -1,8 +1,10 @@
 #!/bin/bash
-sed -n -e '7,$p' < "$0" | /usr/bin/gcc -x c -o "$0.$$.out" -
-$0.$$.out "$0" "$@"
+BIN="$0.out"
+if [ "$0" -nt "$BIN" ]; then
+  sed -n -e '9,$p' < "$0" | /usr/bin/gcc -x c -o "$BIN" -
+fi
+"$BIN" "$0" "$@"
 STATUS=$?
-rm $0.$$.out
 exit $STATUS
 
 
