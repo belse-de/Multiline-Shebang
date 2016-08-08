@@ -1,12 +1,13 @@
 #!/bin/bash
 BIN="$0.out"
+SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
 if [ "$0" -nt "$BIN" ]; then
-  sed -n -e '9,$p' < "$0" | /usr/bin/gcc -x c -o "$BIN" -
+  sed -n -e ''"$SHEBANG_EOF"',$p' "$0" | /usr/bin/gcc -x c -o "$BIN" -
 fi
 "$BIN" "$0" "$@"
 STATUS=$?
 exit $STATUS
-
+!#
 
 #include <stdio.h>
 
