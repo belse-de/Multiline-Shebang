@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e; umask 077
 BIN="$0.out"
 SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
 CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n")
@@ -9,6 +10,7 @@ if [ "$0" -nt "$BIN" ]; then
   echo "$CODE" | /usr/bin/gcc -x c -o "$BIN" -
 fi
 
+set +e
 "$BIN" "$0" "$@"
 STATUS=$?
 exit $STATUS
