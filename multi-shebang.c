@@ -23,14 +23,13 @@ exit $STATUS
 
 int main(int argc, char **argv, char** envp)
 {
-  printf("%s(%d):%s\n\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+  printf("%s(%d):%s\n\n", __FILE__, __LINE__, __func__);
   
-  int i;
-  for (i = 0; i < argc; i++)
+  for (int i = 0; i < argc; i++)
     printf("argv[%d] -> %s\n", i, argv[i]);
   printf("\n");
   
-  for (i = 0; envp[i] != NULL; i++)
+  for (int i = 0; envp[i] != NULL; i++)
     printf("envp[%d] -> %s\n", i, envp[i]);
   printf("\n");
   
