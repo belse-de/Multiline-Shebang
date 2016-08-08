@@ -1,13 +1,16 @@
 #!/bin/bash
 set -e; umask 077
 BIN="$0.out"
+CFLAGS='-std=c11 -Wall -Wextra -Werror -O0 -g3'
+LINKER='-fsanitize=address'
+
 SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
 CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n")
 CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0")
 CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW")
 
 if [ "$0" -nt "$BIN" ]; then
-  echo "$CODE" | /usr/bin/gcc -x c -o "$BIN" -
+  echo "$CODE" | /usr/bin/gcc $CFLAGS -x c -o "$BIN" - $LINKER
 fi
 
 set +e
