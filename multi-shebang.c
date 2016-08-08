@@ -1,9 +1,14 @@
 #!/bin/bash
 BIN="$0.out"
 SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
+CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n")
+CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0")
+CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW")
+
 if [ "$0" -nt "$BIN" ]; then
-  sed -n -e ''"$SHEBANG_EOF"',$p' "$0" | /usr/bin/gcc -x c -o "$BIN" -
+  echo "$CODE" | /usr/bin/gcc -x c -o "$BIN" -
 fi
+
 "$BIN" "$0" "$@"
 STATUS=$?
 exit $STATUS
