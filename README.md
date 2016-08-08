@@ -1,6 +1,21 @@
+# Multiline shebang #
+I was on the search for a tool that would allow me, 
+to create easy and fast prototypes in c/c++, 
+like scipting languages would allow you.
+
+I found my solution in a poliglot, 
+the combination of shell script and c-source in one file.
+
+Over time this some how developt in to its own little project.
+Which I recreated on GitHub, so other may benefit from it.
+
+
+
+## Externe Definition ##
 
 cite source: https://rosettacode.org/wiki/Multiline_shebang
-### Multiline shebang ###
+
+### Multiline shebang Definition ###
 
 Simple shebangs can help with scripting, 
 e.g., #!/usr/bin/env python at the top of a Python script will allow it 
@@ -22,6 +37,8 @@ which creates problems such as Emacs treating the file as a shell script,
 no matter which language and file extension it really uses. 
 
 see also:
+
   Native shebang - where the "program loaded" is of the actual native task language
+  
   https://rosettacode.org/wiki/Native_shebang#Using_gcc_to_script_C
 
