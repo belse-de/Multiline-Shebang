@@ -3,16 +3,16 @@ set -e;       # terminate on error
 umask 077;    # make ever out file read/write/execute(rwx) only for current user
 BIN="$0.out"  # name of the output file
 CFLAGS='-std=c11 -Wall -Wextra -Werror -O0 -g3'; # compiler / c flags
-LINKER='-fsanitize=address' # linker flags
+LINKER='-fsanitize=address'; # linker flags
 
 # calclutate position(line) of closing shebang('!#')
-SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
+SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ));
 # generate preprocessor directive to fix file name and line number
-CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n")
+CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n");
 # code without the multi line shebang
-CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0")
+CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0");
 # concat of PP directiv and c code
-CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW")
+CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW");
 
 if [ "$0" -nt "$BIN" ]; then
   echo -e "\033[33m Source is newer \033[0m -> \033[31m recompiling.. \033[0m" 1>&2

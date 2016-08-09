@@ -36,19 +36,27 @@ set +e; "$BIN" "$0" "$@"; exit $?;
 
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 
-//__multi_shebang_self_linking_c
-//extern uint8_t _binary___oneshot_link_c_start;
-extern uint8_t _binary___multi_shebang_self_linking_c_start;
-extern uint8_t _binary___multi_shebang_self_linking_c_end  ;
-extern uint8_t _binary___multi_shebang_self_linking_c_size ;
+#include <assert.h>
 
-uint8_t* _binary_start_ptr = &_binary___multi_shebang_self_linking_c_start;
-uint8_t* _binary_end_ptr   = &_binary___multi_shebang_self_linking_c_end;
-size_t   _binary_size      = (size_t)&_binary___multi_shebang_self_linking_c_size;
+#define C_C(a,b)      a##b
+#define CONCAT(a,b)   C_C(a,b)
+#define BLOB(f)       CONCAT(_binary_,f)
+#define BLOB_START(f) CONCAT(BLOB(f),_start)
+#define BLOB_END(f)   CONCAT(BLOB(f),_end)
+#define BLOB_SIZE(f)  CONCAT(BLOB(f),_size)
+
+//        real: ./multi-shebang.sel-linking.c
+#define SRC_OBJ __multi_shebang_self_linking_c
+extern uint8_t BLOB_START(SRC_OBJ);
+extern uint8_t BLOB_END(SRC_OBJ)  ;
+extern uint8_t BLOB_SIZE(SRC_OBJ) ;
+
+uint8_t* _binary_start_ptr = &BLOB_START(SRC_OBJ);
+uint8_t* _binary_end_ptr   = &BLOB_END(SRC_OBJ);
+size_t   _binary_size      = (size_t)&BLOB_SIZE(SRC_OBJ);
 
 
 int main( int argC, char** argV ) {
