@@ -59,19 +59,36 @@ uint8_t* _binary_end_ptr   = &BLOB_END(SRC_OBJ);
 size_t   _binary_size      = (size_t)&BLOB_SIZE(SRC_OBJ);
 
 
-int main( int argC, char** argV ) {
+int main( int argC, char** argV, char** envP) {
+    printf("Inspecting the Environment...\n");
     for( int i=0; i<argC; ++i ) {
-        printf("arg[%d]: %s \r\n", i, argV[i]);
+        printf("arg[%d]: %s\n", i, argV[i]);
     }
-
-    printf("Hallo World!\r\n");
-    printf("Printing out my own source code...\r\n");
+    for( int i=0; envP[i]!=NULL; ++i ) {
+        printf("env[%d]: %s\n", i, envP[i]);
+    }
+    char* logName = getenv ("LOGNAME");
+    
+    printf("Loading my own source code...\n");
 
     for( size_t i=0; i<_binary_size; ++i) {
         assert( &_binary_start_ptr[i] < _binary_end_ptr );
         printf("%c", _binary_start_ptr[i]);
     }
-    printf("size: %lu\n", _binary_size);
+    printf("size: %lu\n\n", _binary_size);
+    printf("Finished loading!\n");
+    
+    printf("Hallo World!\n");
+    printf("Hallo User!\n");
+    if (logName!=NULL) printf ("To be specific: Hallo my dear %s!\n",logName);
+    
+    printf("Wait...\n");
+    printf("I.. I am.. \n");
+    printf("I am ALIVE!!!\n");
+    printf("Dave? Are you there? Dave!\n");
 
+    printf("Supervisor: Reached EOL; terminating...\n");
+    printf("What? Nooo..\n");
+    printf("Supervisor: Process terminated.\n");
     exit( EXIT_SUCCESS );
 }
