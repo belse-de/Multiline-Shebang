@@ -1,12 +1,17 @@
 #!/bin/bash
-set -e; umask 077
-BIN="$0.out"
-CFLAGS='-std=c11 -Wall -Wextra -Werror -O0 -g3'
-LINKER='-fsanitize=address'
+set -e;       # terminate on error
+umask 077;    # make ever out file read/write/execute(rwx) only for current user
+BIN="$0.out"  # name of the output file
+CFLAGS='-std=c11 -Wall -Wextra -Werror -O0 -g3'; # compiler / c flags
+LINKER='-fsanitize=address' # linker flags
 
+# calclutate position(line) of closing shebang('!#')
 SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ))
+# generate preprocessor directive to fix file name and line number
 CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n")
+# code without the multi line shebang
 CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0")
+# concat of PP directiv and c code
 CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW")
 
 if [ "$0" -nt "$BIN" ]; then
@@ -14,11 +19,11 @@ if [ "$0" -nt "$BIN" ]; then
   echo "$CODE" | /usr/bin/gcc $CFLAGS -x c -o "$BIN" - $LINKER
 fi
 
-set +e
-"$BIN" "$0" "$@"
-STATUS=$?
-exit $STATUS
+set +e;          # reenable continue  on error
+"$BIN" "$0" "$@" # execute binary
+exit $?          # return exit code of binary
 !#
+// c code starts in this line
 #include <stdio.h>
 
 int main(int argc, char **argv, char** envp)
