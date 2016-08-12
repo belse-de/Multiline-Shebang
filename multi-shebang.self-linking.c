@@ -2,13 +2,15 @@
 set -e;
 umask 077;
 BIN="$0.out";OBJ="$0.o";SRC_OBJ="$0.src.o";
-CFLAGS='-std=c11 -Wall -Wextra -Werror -O0 -g3';
-LINKER='-fsanitize=address';
+SRC_OBJ_NAME=$(echo "$0" | sed -e 's/[^A-Za-z0-9_]/_/g')
+CFLAGS="-DSRC_OBJ=$SRC_OBJ_NAME -std=c11 -Wall -Wextra -Werror -O0 -g3";
+LINKER="-fsanitize=address";
 
 SHEBANG_EOF=$(( $(grep -n "^!#\$" "$0" | grep -o "^[0-9]*") + 1 ));
 CODE_LINE=$(echo -e "#line $SHEBANG_EOF \"$0\"\n");
 CODE_RAW=$(sed -n -e ''"$SHEBANG_EOF"',$p' "$0");
 CODE=$(echo "$CODE_LINE" && echo "$CODE_RAW");
+
 
 if [ "$0" -nt "$BIN" ]; then
   echo -e "\033[33m Source is newer \033[0m -> \033[31m recompiling.. \033[0m" 1>&2
@@ -48,8 +50,10 @@ set +e; "$BIN" "$0" "$@"; exit $?;
 #define BLOB_END(f)   CONCAT(BLOB(f),_end)
 #define BLOB_SIZE(f)  CONCAT(BLOB(f),_size)
 
-//        real: ./multi-shebang.sel-linking.c
-#define SRC_OBJ __multi_shebang_self_linking_c
+#ifndef SRC_OBJ
+  #error "SRC_OBJ not defined"
+#endif
+
 extern uint8_t BLOB_START(SRC_OBJ);
 extern uint8_t BLOB_END(SRC_OBJ)  ;
 extern uint8_t BLOB_SIZE(SRC_OBJ) ;
