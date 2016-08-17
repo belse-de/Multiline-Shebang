@@ -148,8 +148,8 @@ uint32_t crc32c(uint32_t _, uint8_t *buf, size_t length) {
 
 /* ---- main ---- */
 int main(void) {
-  size_t runs = 10000;
-  size_t buffer_len = 2;
+  size_t runs = 1;
+  size_t buffer_len = 4;
   uint8_t buffer[buffer_len];
 
   func_crc32 func_array[] = 
@@ -163,9 +163,13 @@ int main(void) {
 
   for(size_t run=0; run<runs; run++){
     if(run%10==0) log_info("Run: %4lu %%%3lu", run, run*100/runs);
-    for( int buf_step=0; buf_step<buffer_len; buf_step++){
+    
+    for( size_t buf_step=0; buf_step<buffer_len; buf_step++){
+      log_info("Step: %4lu %%%3lu", buf_step, buf_step*100/buffer_len);
       
-      for(int cell_pos=0; cell_pos<=buf_step;){
+      for(size_t cell_pos=0; cell_pos<=buf_step;){
+        
+        
         if(buffer[cell_pos] == 255){
           buffer[cell_pos] = 0;
           cell_pos += 1;
@@ -174,25 +178,17 @@ int main(void) {
           cell_pos = 0;
         }
         
+        bool error_found = false;
         for(int i=0; func_array[i]; i++)
         {
           func32_res[i] = func_array[i](0,buffer,buffer_len);
-        }
-        
-        bool error_found = false;
-        for(int i=1; func_array[i]; i++)
-        {
-          if(func32_res[i-1]!=func32_res[i]) 
-          {
-            error_found = true;
-            break;
-          }
+          if( i>1 && (func32_res[i-1]!=func32_res[i]) ) { error_found = true; }
         }
         
         if( error_found )
         {
           log_err("Calced crc does not match");
-          for( int print_pos=0; print_pos<buffer_len; print_pos++)
+          for( size_t print_pos=0; print_pos<buffer_len; print_pos++)
           {
              printf("%02x ", buffer[print_pos]);
           }printf("\n");
