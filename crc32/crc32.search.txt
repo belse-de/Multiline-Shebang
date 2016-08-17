@@ -1,0 +1,15 @@
+'1':
+	hex: 83dcefb7
+	int: 2212294583
+	eth: 6c300461
+"Der schnelle braune Fuchs sprang über den trägen Hund.":
+	hex: 2fffeaa6
+	int: 805300902
+	eth: 9c06070e
+	
+	http://stackoverflow.com/questions/2587766/how-is-a-crc32-checksum-calculated
+	http://www.ross.net/crc/download/crc_v3.txt
+	http://opensource.apple.com//source/xnu/xnu-1456.1.26/bsd/libkern/crc32.c?txt
+	http://www.hackersdelight.org/hdcodetxt/crc.c.txt
+	http://www.hackersdelight.org/
+	http://www.hackersdelight.org/hdcode.htm
