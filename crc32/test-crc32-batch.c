@@ -272,8 +272,8 @@ int main(void) {
   for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", str_v0[p]); }
   for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", (&str_v0[6])[p]); }
   
-  uint32_t crc_v1 = func_array[2](crc_v0,(uint8_t*)str_v0,str_len_v0);
-  uint32_t crc_v2 = func_array[3](crc_v0,(uint8_t*)str_v0,str_len_v0);
+  uint32_t crc_v1 = func_array[3](0,(uint8_t*)str_v0,str_len_v0-6);
+  uint32_t crc_v2 = func_array[3](crc_v1,(uint8_t*)(&str_v0[6]),str_len_v0-6);
   log_info("crc32: 0x%08x   0x%08x 0x%08x\n", crc_v0, crc_v1, crc_v2);
   
     
