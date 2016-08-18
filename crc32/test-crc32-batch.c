@@ -1,4 +1,4 @@
-#!/usr/bin/tcc -run -Wall -Werror -g -I/usr/lib/gcc/x86_64-pc-linux-gnu/6.1.1/include/
+//#!/usr/bin/tcc -run -Wall -Werror -g -I/usr/lib/gcc/x86_64-pc-linux-gnu/6.1.1/include/
 // tcc Currently missing items are: complex and imaginary numbers and variable length arrays.
 
 #ifdef __TINYC__
@@ -48,7 +48,7 @@ const uint8_t bitcount    = 8;
 // ---------------------------- reverse --------------------------------
 
 // Reverses (reflects) bits in a 32-bit word.
-uint32_t reverse(uint32_t x) {
+static inline uint32_t reverse(uint32_t x) {
    x = ((x & 0x55555555) <<  1) | ((x >>  1) & 0x55555555);
    x = ((x & 0x33333333) <<  2) | ((x >>  2) & 0x33333333);
    x = ((x & 0x0F0F0F0F) <<  4) | ((x >>  4) & 0x0F0F0F0F);
@@ -200,8 +200,8 @@ uint32_t crc32c_s(uint32_t start_crc, uint8_t *buf, size_t length) {
 
 /* ---- main ---- */
 int main(void) {
-  size_t runs = 1;
-  size_t buffer_len = 2;
+  size_t runs = 100;
+  size_t buffer_len = 3;
   uint8_t buffer[buffer_len];
 
   func_crc32 func_array[] = 
