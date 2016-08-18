@@ -145,30 +145,93 @@ uint32_t crc32c(uint32_t _, uint8_t *buf, size_t length) {
    return ~crc;
 }
 
+// same as above, but with given start crc
+// ----------------------------- crc32a --------------------------------
+uint32_t crc32a_s(uint32_t start_crc, uint8_t *buf, size_t length) {
+   uint32_t crc = start_crc ^ ~0;
+   for (size_t i=0; i<length; i++) {
+      uint32_t byte = buf[i];            // Get next byte.
+      byte = reverse(byte);         // 32-bit reversal.
+      for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+         if ((int)(crc ^ byte) < 0)
+              crc = (crc << 1) ^ 0x04C11DB7;
+         else crc = crc << 1;
+         byte = byte << 1;          // Ready next msg bit.
+      }
+   }
+   return reverse(~crc);
+}
+// ----------------------------- crc32b --------------------------------
+uint32_t crc32b_s(uint32_t start_crc, uint8_t *buf, size_t length) {
+   uint32_t crc = start_crc ^ ~0;
+   for (size_t i=0; i<length; i++) {
+      uint32_t byte = buf[i];            // Get next byte.
+      crc = crc ^ byte;
+      for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+         uint32_t mask = -(crc & 1);
+         crc = (crc >> 1) ^ (0xEDB88320 & mask);
+      }
+   }
+   return ~crc;
+}
+// ----------------------------- crc32c --------------------------------
+uint32_t crc32c_s(uint32_t start_crc, uint8_t *buf, size_t length) {
+   static uint32_t table[256];
+   /* Set up the table, if necessary. */
+   if (table[1] == 0) {
+      for (uint32_t byte = 0; byte <= 255; byte++) {
+         uint32_t crc_tmp = byte;
+         for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+            uint32_t mask = -(crc_tmp & 1);
+            crc_tmp = (crc_tmp >> 1) ^ (0xEDB88320 & mask);
+         }
+         table[byte] = crc_tmp;
+      }
+   }
+
+   /* Through with table setup, now calculate the CRC. */
+   uint32_t crc = ~start_crc;
+   for (size_t i=0; i<length; i++) {
+      uint32_t byte = buf[i];
+      crc = (crc >> 8) ^ table[(crc ^ byte) & 0xFF];
+   }
+   return ~crc;
+}
 
 /* ---- main ---- */
 int main(void) {
   size_t runs = 1;
-  size_t buffer_len = 4;
+  size_t buffer_len = 2;
   uint8_t buffer[buffer_len];
 
   func_crc32 func_array[] = 
   {
-    crc32a,   // slowest
+    //crc32a,   // slowest
     crc32b,
     crc32c,
+    //crc32a_s,
+    crc32b_s,
+    crc32c_s,
     NULL
   };
   uint32_t func32_res[8] = { 0,0,0,0, 0,0,0,0 };
+  //uint8_t last_cell = 255;
 
   for(size_t run=0; run<runs; run++){
-    if(run%10==0) log_info("Run: %4lu %%%3lu", run, run*100/runs);
+    //if(run%10==0) 
+    log_info("Run: %4lu %%%3lu", run, run*100/runs);
     
     for( size_t buf_step=0; buf_step<buffer_len; buf_step++){
-      log_info("Step: %4lu %%%3lu", buf_step, buf_step*100/buffer_len);
+      //log_info("Step: %4lu %%%3lu", buf_step, buf_step*100/buffer_len);
       
       for(size_t cell_pos=0; cell_pos<=buf_step;){
-        
+      #if 0
+        if(last_cell != buffer[buf_step])
+        {
+          log_info("Cell: %4lu %%%3lu", buffer[buf_step], buffer[buf_step]*100/256);
+          last_cell = buffer[buf_step];
+        }
+      #endif
         
         if(buffer[cell_pos] == 255){
           buffer[cell_pos] = 0;
@@ -185,7 +248,9 @@ int main(void) {
           if( i>1 && (func32_res[i-1]!=func32_res[i]) ) { error_found = true; }
         }
         
-        if( error_found )
+        if( error_found 
+            || (func32_res[0] == 0xffffffff) 
+            || (func32_res[0] == 0x00000000) )
         {
           log_err("Calced crc does not match");
           for( size_t print_pos=0; print_pos<buffer_len; print_pos++)
@@ -200,6 +265,17 @@ int main(void) {
       }
     }
   }
+  const char * str_v0    = "Hallo World!";
+  size_t   str_len_v0 = strlen(str_v0);
+  uint32_t crc_v0 = func_array[0](0,     (uint8_t*)str_v0,str_len_v0);
+  
+  for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", str_v0[p]); }
+  for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", (&str_v0[6])[p]); }
+  
+  uint32_t crc_v1 = func_array[2](crc_v0,(uint8_t*)str_v0,str_len_v0);
+  uint32_t crc_v2 = func_array[3](crc_v0,(uint8_t*)str_v0,str_len_v0);
+  log_info("crc32: 0x%08x   0x%08x 0x%08x\n", crc_v0, crc_v1, crc_v2);
+  
     
   exit(EXIT_SUCCESS);
 }
