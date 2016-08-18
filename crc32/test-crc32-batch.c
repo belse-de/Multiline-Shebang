@@ -1,4 +1,4 @@
-//#!/usr/bin/tcc -run -Wall -Werror -g -I/usr/lib/gcc/x86_64-pc-linux-gnu/6.1.1/include/
+#!/usr/bin/tcc -run -Wall -Werror -g -I/usr/lib/gcc/x86_64-pc-linux-gnu/6.1.1/include/
 // tcc Currently missing items are: complex and imaginary numbers and variable length arrays.
 
 #ifdef __TINYC__
@@ -62,7 +62,7 @@ uint32_t reverse(uint32_t x) {
 /* This is the basic CRC algorithm with no optimizations. It follows the
 logic circuit as closely as possible. */
 
-uint32_t crc32a(uint32_t _, uint8_t *buf, size_t length) {
+uint32_t crc32a(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
    uint32_t byte, crc;
 
    crc = 0xFFFFFFFF;
@@ -91,7 +91,7 @@ should be doable in 4 + 61n instructions.
    If the inner loop is strung out (approx. 5*8 = 40 instructions),
 it would take about 6 + 46n instructions. */
 
-uint32_t crc32b(uint32_t _, uint8_t *buf, size_t length) {
+uint32_t crc32b(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
    uint32_t byte, crc, mask;
 
    crc = 0xFFFFFFFF;
@@ -118,7 +118,7 @@ message. It should be doable in 4 + 9n instructions. In any case, two
 of the 13 or 9 instrucions are load byte.
    This is Figure 14-7 in the text. */
 
-uint32_t crc32c(uint32_t _, uint8_t *buf, size_t length) {
+uint32_t crc32c(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
    uint32_t byte, crc, mask;
    static uint32_t table[256];
 
@@ -148,7 +148,7 @@ uint32_t crc32c(uint32_t _, uint8_t *buf, size_t length) {
 // same as above, but with given start crc
 // ----------------------------- crc32a --------------------------------
 uint32_t crc32a_s(uint32_t start_crc, uint8_t *buf, size_t length) {
-   uint32_t crc = start_crc ^ ~0;
+   uint32_t crc = reverse(~start_crc);
    for (size_t i=0; i<length; i++) {
       uint32_t byte = buf[i];            // Get next byte.
       byte = reverse(byte);         // 32-bit reversal.
@@ -206,10 +206,10 @@ int main(void) {
 
   func_crc32 func_array[] = 
   {
-    //crc32a,   // slowest
+    crc32a,   // slowest
     crc32b,
     crc32c,
-    //crc32a_s,
+    crc32a_s,
     crc32b_s,
     crc32c_s,
     NULL
@@ -269,13 +269,22 @@ int main(void) {
   size_t   str_len_v0 = strlen(str_v0);
   uint32_t crc_v0 = func_array[0](0,     (uint8_t*)str_v0,str_len_v0);
   
-  for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", str_v0[p]); }
-  for(size_t p=0;p<str_len_v0-6;p++) { fprintf(stderr,"%c", (&str_v0[6])[p]); }
+  uint32_t crc_v1 = func_array[5](0,(uint8_t*)str_v0,str_len_v0-6);
+  uint32_t crc_v2 = func_array[5](crc_v1,(uint8_t*)(&str_v0[6]),str_len_v0-6);
+  log_debug("crc32: 0x%08x   0x%08x", crc_v0, crc_v2);
+  check(crc_v0 == crc_v2,"continuation did not work");
   
-  uint32_t crc_v1 = func_array[3](0,(uint8_t*)str_v0,str_len_v0-6);
-  uint32_t crc_v2 = func_array[3](crc_v1,(uint8_t*)(&str_v0[6]),str_len_v0-6);
-  log_info("crc32: 0x%08x   0x%08x 0x%08x\n", crc_v0, crc_v1, crc_v2);
+  uint32_t crc_v3 = func_array[4](0,(uint8_t*)str_v0,str_len_v0-6);
+  uint32_t crc_v4 = func_array[4](crc_v3,(uint8_t*)(&str_v0[6]),str_len_v0-6);
+  log_debug("crc32: 0x%08x   0x%08x", crc_v0, crc_v4);
+  check(crc_v0 == crc_v4,"continuation did not work");
   
+  uint32_t crc_v5 = func_array[3](0,(uint8_t*)str_v0,str_len_v0-6);
+  uint32_t crc_v6 = func_array[3](crc_v5,(uint8_t*)(&str_v0[6]),str_len_v0-6);
+  log_debug("crc32: 0x%08x   0x%08x", crc_v0, crc_v6);
+  check(crc_v0 == crc_v6,"continuation did not work");
     
   exit(EXIT_SUCCESS);
+error:
+  exit(EXIT_FAILURE);
 }
