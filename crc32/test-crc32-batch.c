@@ -40,12 +40,6 @@ typedef char* __isoc_va_list;
 #include <assert.h>
 #include <stdbool.h> // bool, true, false
 
-typedef uint32_t (*func_crc32)(uint32_t crc32, uint8_t* buffer, size_t length);
-
-const uint8_t bitcount    = 8;
-
-
-// ---------------------------- reverse --------------------------------
 
 // Reverses (reflects) bits in a 32-bit word.
 static inline uint32_t reverse(uint32_t x) {
@@ -57,29 +51,42 @@ static inline uint32_t reverse(uint32_t x) {
    return x;
 }
 
-// ----------------------------- crc32a --------------------------------
-
 /* This is the basic CRC algorithm with no optimizations. It follows the
 logic circuit as closely as possible. */
+uint32_t crc32_verbose(uint8_t *buffer, size_t length) {
+  assert(buffer==NULL || length==0);
+  uint32_t byte, crc;
 
-uint32_t crc32a(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
-   uint32_t byte, crc;
-
-   crc = 0xFFFFFFFF;
-   for (size_t i=0; i<length; i++) {
-      byte = buf[i];            // Get next byte.
-      byte = reverse(byte);         // 32-bit reversal.
-      for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
-         if ((int)(crc ^ byte) < 0)
-              crc = (crc << 1) ^ 0x04C11DB7;
-         else crc = crc << 1;
-         byte = byte << 1;          // Ready next msg bit.
-      }
-   }
-   return reverse(~crc);
+  crc = 0xFFFFFFFF;
+  for (size_t i=0; i<length; i++) {
+    byte = buffer[i];            // Get next byte.
+    byte = reverse(byte);         // 32-bit reversal.
+    for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+       if ((int)(crc ^ byte) < 0)
+            crc = (crc << 1) ^ 0x04C11DB7;
+       else crc = crc << 1;
+       byte = byte << 1;          // Ready next msg bit.
+    }
+  }
+  return reverse(~crc);
 }
-
-// ----------------------------- crc32b --------------------------------
+// same as above, but with given start crc
+uint32_t crc32_verbose_continue(uint32_t start_crc, uint8_t *buf, size_t length) {
+  assert(buffer==NULL || length==0);
+  uint32_t crc,byte;
+  crc = reverse(~start_crc);
+  for (size_t i=0; i<length; i++) {
+    byte = buf[i];            // Get next byte.
+    byte = reverse(byte);         // 32-bit reversal.
+    for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+       if ((int)(crc ^ byte) < 0)
+            crc = (crc << 1) ^ 0x04C11DB7;
+       else crc = crc << 1;
+       byte = byte << 1;          // Ready next msg bit.
+    }
+  }
+  return reverse(~crc);
+}
 
 /* This is the basic CRC-32 calculation with some optimization but no
 table lookup. The the byte reversal is avoided by shifting the crc reg
@@ -90,13 +97,13 @@ instructions, where n is the number of bytes in the input message. It
 should be doable in 4 + 61n instructions.
    If the inner loop is strung out (approx. 5*8 = 40 instructions),
 it would take about 6 + 46n instructions. */
-
-uint32_t crc32b(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
+uint32_t crc32_optimized(uint8_t *buffer, size_t length) {
+assert(buffer==NULL || length==0);
    uint32_t byte, crc, mask;
 
    crc = 0xFFFFFFFF;
    for (size_t i=0; i<length; i++) {
-      byte = buf[i];            // Get next byte.
+      byte = buffer[i];            // Get next byte.
       crc = crc ^ byte;
       for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
          mask = -(crc & 1);
@@ -105,9 +112,21 @@ uint32_t crc32b(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length)
    }
    return ~crc;
 }
-
-
-// ----------------------------- crc32c --------------------------------
+// same as above, but with given start crc
+uint32_t crc32_optimized_continue(uint32_t start_crc, uint8_t *buf, size_t length) {
+  assert(buffer==NULL || length==0);
+  uint32_t crc,byte,mask;
+  crc = start_crc ^ ~0;
+  for (size_t i=0; i<length; i++) {
+    byte = buf[i];            // Get next byte.
+    crc = crc ^ byte;
+    for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+       mask = -(crc & 1);
+       crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    }
+  }
+  return ~crc;
+}
 
 /* This is derived from crc32b but does table lookup. First the table
 itself is calculated, if it has not yet been set up.
@@ -118,85 +137,63 @@ message. It should be doable in 4 + 9n instructions. In any case, two
 of the 13 or 9 instrucions are load byte.
    This is Figure 14-7 in the text. */
 
-uint32_t crc32c(__attribute__((unused)) uint32_t _, uint8_t *buf, size_t length) {
-   uint32_t byte, crc, mask;
-   static uint32_t table[256];
+uint32_t crc32_lookup(uint8_t *buffer, size_t length) {
+  assert(buffer==NULL || length==0);
+  uint32_t byte, crc, mask;
+  static uint32_t table[256];
 
-   /* Set up the table, if necessary. */
+  /* Set up the table, if necessary. */
 
-   if (table[1] == 0) {
-      for (byte = 0; byte <= 255; byte++) {
-         crc = byte;
-         for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
-            mask = -(crc & 1);
-            crc = (crc >> 1) ^ (0xEDB88320 & mask);
-         }
-         table[byte] = crc;
-      }
-   }
+  if (table[1] == 0) {
+    for (byte = 0; byte <= 255; byte++) {
+       crc = byte;
+       for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+          mask = -(crc & 1);
+          crc = (crc >> 1) ^ (0xEDB88320 & mask);
+       }
+       table[byte] = crc;
+    }
+  }
 
-   /* Through with table setup, now calculate the CRC. */
+  /* Through with table setup, now calculate the CRC. */
 
-   crc = 0xFFFFFFFF;
-   for (size_t i=0; i<length; i++) {
-      byte = buf[i];
-      crc = (crc >> 8) ^ table[(crc ^ byte) & 0xFF];
-   }
-   return ~crc;
+  crc = 0xFFFFFFFF;
+  for (size_t i=0; i<length; i++) {
+    byte = buffer[i];
+    crc = (crc >> 8) ^ table[(crc ^ byte) & 0xFF];
+  }
+  return ~crc;
 }
-
 // same as above, but with given start crc
-// ----------------------------- crc32a --------------------------------
-uint32_t crc32a_s(uint32_t start_crc, uint8_t *buf, size_t length) {
-   uint32_t crc = reverse(~start_crc);
-   for (size_t i=0; i<length; i++) {
-      uint32_t byte = buf[i];            // Get next byte.
-      byte = reverse(byte);         // 32-bit reversal.
-      for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
-         if ((int)(crc ^ byte) < 0)
-              crc = (crc << 1) ^ 0x04C11DB7;
-         else crc = crc << 1;
-         byte = byte << 1;          // Ready next msg bit.
-      }
-   }
-   return reverse(~crc);
-}
-// ----------------------------- crc32b --------------------------------
-uint32_t crc32b_s(uint32_t start_crc, uint8_t *buf, size_t length) {
-   uint32_t crc = start_crc ^ ~0;
-   for (size_t i=0; i<length; i++) {
-      uint32_t byte = buf[i];            // Get next byte.
-      crc = crc ^ byte;
-      for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
-         uint32_t mask = -(crc & 1);
-         crc = (crc >> 1) ^ (0xEDB88320 & mask);
-      }
-   }
-   return ~crc;
-}
-// ----------------------------- crc32c --------------------------------
-uint32_t crc32c_s(uint32_t start_crc, uint8_t *buf, size_t length) {
-   static uint32_t table[256];
-   /* Set up the table, if necessary. */
-   if (table[1] == 0) {
-      for (uint32_t byte = 0; byte <= 255; byte++) {
-         uint32_t crc_tmp = byte;
-         for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
-            uint32_t mask = -(crc_tmp & 1);
-            crc_tmp = (crc_tmp >> 1) ^ (0xEDB88320 & mask);
-         }
-         table[byte] = crc_tmp;
-      }
-   }
+uint32_t crc32_lookup_continue(uint32_t start_crc, uint8_t *buf, size_t length) {
+  assert(buffer==NULL || length==0);
+  static uint32_t table[256];
+  uint32_t crc_tmp,mask,crc,byte
+  /* Set up the table, if necessary. */
+  if (table[1] == 0) {
+    for (uint32_t byte = 0; byte <= 255; byte++) {
+       crc_tmp = byte;
+       for (uint8_t j = 0; j <bitcount; j++) {    // Do eight times.
+          mask = -(crc_tmp & 1);
+          crc_tmp = (crc_tmp >> 1) ^ (0xEDB88320 & mask);
+       }
+       table[byte] = crc_tmp;
+    }
+  }
 
-   /* Through with table setup, now calculate the CRC. */
-   uint32_t crc = ~start_crc;
-   for (size_t i=0; i<length; i++) {
-      uint32_t byte = buf[i];
-      crc = (crc >> 8) ^ table[(crc ^ byte) & 0xFF];
-   }
-   return ~crc;
+  /* Through with table setup, now calculate the CRC. */
+  crc = ~start_crc;
+  for (size_t i=0; i<length; i++) {
+    byte = buf[i];
+    crc = (crc >> 8) ^ table[(crc ^ byte) & 0xFF];
+  }
+  return ~crc;
 }
+
+
+
+
+
 
 /* ---- main ---- */
 int main(void) {
@@ -204,34 +201,12 @@ int main(void) {
   size_t buffer_len = 3;
   uint8_t buffer[buffer_len];
 
-  func_crc32 func_array[] = 
-  {
-    crc32a,   // slowest
-    crc32b,
-    crc32c,
-    crc32a_s,
-    crc32b_s,
-    crc32c_s,
-    NULL
-  };
-  uint32_t func32_res[8] = { 0,0,0,0, 0,0,0,0 };
-  //uint8_t last_cell = 255;
 
   for(size_t run=0; run<runs; run++){
-    //if(run%10==0) 
     log_info("Run: %4lu %%%3lu", run, run*100/runs);
     
     for( size_t buf_step=0; buf_step<buffer_len; buf_step++){
-      //log_info("Step: %4lu %%%3lu", buf_step, buf_step*100/buffer_len);
-      
       for(size_t cell_pos=0; cell_pos<=buf_step;){
-      #if 0
-        if(last_cell != buffer[buf_step])
-        {
-          log_info("Cell: %4lu %%%3lu", buffer[buf_step], buffer[buf_step]*100/256);
-          last_cell = buffer[buf_step];
-        }
-      #endif
         
         if(buffer[cell_pos] == 255){
           buffer[cell_pos] = 0;
